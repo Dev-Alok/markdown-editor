@@ -23,8 +23,15 @@ export class MarkedPipe implements PipeTransform {
     this.markedInstance = new Marked(
       markedHighlight({
         highlight(code, lang) {
-          const language = Prism.languages[lang] ? lang : 'plaintext';
-          return Prism.highlight(code, Prism.languages[language], language);
+          try {
+            const language = (lang && Prism.languages[lang]) ? lang : null;
+            if (language) {
+              return Prism.highlight(code, Prism.languages[language], language);
+            }
+            return code;
+          } catch {
+            return code;
+          }
         }
       })
     );

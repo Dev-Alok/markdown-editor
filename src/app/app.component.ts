@@ -1,8 +1,7 @@
 import { Component, viewChild, signal, ElementRef, inject, AfterViewInit, OnDestroy, effect, DestroyRef } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, from } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { debounceTime } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from './theme.service';
 import { FileService } from './file.service';
@@ -29,7 +28,7 @@ import { ConfirmDialogComponent } from './confirm-dialog/confirm-dialog.componen
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, MarkedPipe, CommonModule, ConfirmDialogComponent],
+  imports: [FormsModule, CommonModule, ConfirmDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -99,13 +98,36 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (typeof Worker !== 'undefined') {
       this.worker = new Worker(new URL('./markdown.worker', import.meta.url));
       this.worker.onmessage = ({ data }) => {
-        const { html, id } = data;
+        let parsedData = data;
+        if (typeof data === 'string') {
+          try {
+            parsedData = JSON.parse(data);
+          } catch (e) {
+            return; // Ignore invalid JSON strings
+          }
+        }
+
+        if (!parsedData || typeof parsedData !== 'object') {
+          console.warn('Main Thread: Received invalid data from worker:', parsedData);
+          return;
+        }
+
+        const { html, id, error } = parsedData;
+
+        if (error) {
+          console.error('Main Thread: Worker reported error:', error);
+        }
+
         if (id === this.lastWorkerMessageId) {
           this.applyPreviewUpdate(html);
         }
       };
       this.worker.onerror = (err) => {
-        console.error('Worker global error:', err);
+        if (err.message?.includes('has no grammar')) {
+          err.preventDefault();
+          return;
+        }
+        console.error('Main Thread: Worker global error:', err.message);
       };
     } else {
       console.warn('Web Workers are not supported in this environment.');
@@ -115,7 +137,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private updatePreview(content: string): void {
     if (this.worker) {
       this.lastWorkerMessageId++;
-      this.worker.postMessage({ content, id: this.lastWorkerMessageId });
+      this.worker.postMessage(JSON.stringify({ content, id: this.lastWorkerMessageId }));
     } else {
       // Fallback if no worker
       const markedPipe = new MarkedPipe(this.sanitizer);
