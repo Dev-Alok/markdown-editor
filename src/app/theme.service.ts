@@ -6,17 +6,17 @@ import { Injectable } from '@angular/core';
 export class ThemeService {
   private readonly DARK_MODE_KEY = 'markdown-editor-dark-mode';
 
-  isDarkMode(): boolean {
+  public isDarkMode(): boolean {
     const stored = localStorage.getItem(this.DARK_MODE_KEY);
     return stored === null ? true : stored === 'true';
   }
 
-  toggleTheme() {
+  public toggleTheme(): void {
     const currentMode = this.isDarkMode();
     localStorage.setItem(this.DARK_MODE_KEY, (!currentMode).toString());
   }
 
-  setDarkMode(isDark: boolean) {
+  public setDarkMode(isDark: boolean): void {
     localStorage.setItem(this.DARK_MODE_KEY, isDark.toString());
   }
 }

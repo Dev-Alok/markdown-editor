@@ -32,6 +32,13 @@
 
     <div class="flex items-center gap-2 ml-auto sm:ml-0">
       <button
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-(--bg-secondary) text-(--text-primary) border border-(--border-color) hover:bg-(--border-color)"
+        (click)="clearEditor()">
+        <i class="fa-solid fa-file-circle-plus text-xs"></i>
+        <span class="hidden sm:inline">New</span>
+      </button>
+
+      <button
         class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-(--bg-secondary) text-(--text-primary) border border-(--border-color) hover:bg-(--border-color)">
         <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
         <span class="hidden sm:inline">Upload</span>
@@ -101,4 +108,9 @@
       </div>
     </div>
   </main>
+
+  <app-confirm-dialog [isVisible]="dialogVisible()" [title]="dialogTitle()" [message]="dialogMessage()"
+    [type]="dialogType()" [confirmText]="dialogConfirmText()" (confirm)="handleDialogConfirm()"
+    (cancel)="handleDialogCancel()">
+  </app-confirm-dialog>
 </div>

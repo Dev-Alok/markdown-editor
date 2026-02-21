@@ -19,7 +19,7 @@ import 'prismjs/components/prism-bash';
 export class MarkedPipe implements PipeTransform {
   private markedInstance: Marked;
 
-  constructor(private sanitizer: DomSanitizer) {
+  constructor(private readonly sanitizer: DomSanitizer) {
     this.markedInstance = new Marked(
       markedHighlight({
         highlight(code, lang) {

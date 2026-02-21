@@ -1,30 +1,50 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 import { marked } from 'marked';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FileService {
-  fileName = 'untitled.md';
-  private _content = signal('');
+  private readonly STORAGE_KEY_CONTENT = 'md-editor-content';
+  private readonly STORAGE_KEY_FILENAME = 'md-editor-filename';
 
-  get content(): string {
+  private _fileName = signal(localStorage.getItem(this.STORAGE_KEY_FILENAME) || 'untitled.md');
+  private _content = signal(localStorage.getItem(this.STORAGE_KEY_CONTENT) || '');
+
+  constructor() {
+    effect(() => {
+      localStorage.setItem(this.STORAGE_KEY_CONTENT, this._content());
+    });
+
+    effect(() => {
+      localStorage.setItem(this.STORAGE_KEY_FILENAME, this._fileName());
+    });
+  }
+
+  public get content(): string {
     return this._content();
   }
 
-  set content(value: string) {
+  public set content(value: string) {
     this._content.set(value);
   }
 
-  getFileName(): string {
-    return this.fileName;
+  public getFileName(): string {
+    return this._fileName();
   }
 
-  setFileName(fileName: string) {
-    this.fileName = fileName;
+  public setFileName(fileName: string): void {
+    this._fileName.set(fileName);
   }
 
-  loadFile(file: File) {
+  public clearStorage(): void {
+    this._content.set('');
+    this._fileName.set('untitled.md');
+    localStorage.removeItem(this.STORAGE_KEY_CONTENT);
+    localStorage.removeItem(this.STORAGE_KEY_FILENAME);
+  }
+
+  public loadFile(file: File): void {
     if (file.type === 'text/markdown' || file.name.endsWith('.md')) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -38,24 +58,24 @@ export class FileService {
     }
   }
 
-  loadText(text: string) {
+  public loadText(text: string): void {
     this.content = text;
     this.setFileName('pasted-content.md');
   }
 
-  downloadMarkdown() {
+  public downloadMarkdown(): void {
     const blob = new Blob([this.content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = this.fileName;
+    a.download = this.getFileName();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
-  downloadPDF() {
+  public downloadPDF(): void {
     window.print();
   }
 }

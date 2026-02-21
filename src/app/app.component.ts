@@ -17,28 +17,38 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { Compartment } from '@codemirror/state';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 
+import { ConfirmDialogComponent } from './confirm-dialog/confirm-dialog.component';
+
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, MarkedPipe, CommonModule],
+  imports: [FormsModule, MarkedPipe, CommonModule, ConfirmDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
-  title = 'Markdown Editor';
+  protected title = 'Markdown Editor';
 
-  private themeService = inject(ThemeService);
-  fileService = inject(FileService);
+  private readonly themeService = inject(ThemeService);
+  protected readonly fileService = inject(FileService);
 
-  isDarkMode = signal(this.themeService.isDarkMode());
-  isEditingFileName = signal(false);
-  expandedView = signal<'editor' | 'preview' | null>(null);
+  protected isDarkMode = signal(this.themeService.isDarkMode());
+  protected isEditingFileName = signal(false);
+  protected expandedView = signal<'editor' | 'preview' | null>(null);
 
-  fileNameInput = viewChild<ElementRef<HTMLInputElement>>('fileNameInput');
-  editorContainer = viewChild<ElementRef<HTMLDivElement>>('editorContainer');
+  // Dialog state
+  protected dialogVisible = signal(false);
+  protected dialogTitle = signal('');
+  protected dialogMessage = signal('');
+  protected dialogType = signal<'info' | 'warning' | 'danger'>('info');
+  protected dialogConfirmText = signal('Confirm');
+  private dialogOnConfirm: () => void = () => { };
+
+  protected fileNameInput = viewChild<ElementRef<HTMLInputElement>>('fileNameInput');
+  protected editorContainer = viewChild<ElementRef<HTMLDivElement>>('editorContainer');
 
   private editorView?: EditorView;
-  private themeCompartment = new Compartment();
+  private readonly themeCompartment = new Compartment();
 
   constructor() {
     effect(() => {
@@ -60,7 +70,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit() {
+  public ngAfterViewInit(): void {
     const container = this.editorContainer()?.nativeElement;
     if (!container) return;
 
@@ -100,16 +110,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() {
+  public ngOnDestroy(): void {
     this.editorView?.destroy();
   }
 
-  toggleTheme() {
+  protected toggleTheme(): void {
     this.themeService.toggleTheme();
     this.isDarkMode.set(this.themeService.isDarkMode());
   }
 
-  handleFileUpload(event: Event) {
+  protected handleFileUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
@@ -117,22 +127,22 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  handlePaste(event: ClipboardEvent) {
+  public handlePaste(event: ClipboardEvent): void {
     const text = event.clipboardData?.getData('text/plain');
     if (text) {
       this.fileService.loadText(text);
     }
   }
 
-  downloadMarkdown() {
+  protected downloadMarkdown(): void {
     this.fileService.downloadMarkdown();
   }
 
-  downloadPDF() {
+  protected downloadPDF(): void {
     this.fileService.downloadPDF();
   }
 
-  startEditingFileName() {
+  protected startEditingFileName(): void {
     this.isEditingFileName.set(true);
     setTimeout(() => {
       const el = this.fileNameInput()?.nativeElement;
@@ -141,7 +151,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  saveFileName(event: Event) {
+  protected saveFileName(event: Event): void {
     const input = event.target as HTMLInputElement;
     const newName = input.value.trim();
     if (newName) {
@@ -151,15 +161,51 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.isEditingFileName.set(false);
   }
 
-  cancelEditingFileName() {
+  protected cancelEditingFileName(): void {
     this.isEditingFileName.set(false);
   }
 
-  toggleExpand(view: 'editor' | 'preview') {
+  protected toggleExpand(view: 'editor' | 'preview'): void {
     if (this.expandedView() === view) {
       this.expandedView.set(null);
     } else {
       this.expandedView.set(view);
     }
+  }
+
+  protected clearEditor(): void {
+    this.openDialog({
+      title: 'Clear Editor',
+      message: 'Are you sure you want to clear the editor? This will erase your unsaved work.',
+      type: 'danger',
+      confirmText: 'Clear Everything',
+      onConfirm: () => {
+        this.fileService.clearStorage();
+      }
+    });
+  }
+
+  private openDialog(options: {
+    title: string,
+    message: string,
+    type?: 'info' | 'warning' | 'danger',
+    confirmText?: string,
+    onConfirm: () => void
+  }): void {
+    this.dialogTitle.set(options.title);
+    this.dialogMessage.set(options.message);
+    this.dialogType.set(options.type || 'info');
+    this.dialogConfirmText.set(options.confirmText || 'Confirm');
+    this.dialogOnConfirm = options.onConfirm;
+    this.dialogVisible.set(true);
+  }
+
+  protected handleDialogConfirm(): void {
+    this.dialogOnConfirm();
+    this.dialogVisible.set(false);
+  }
+
+  protected handleDialogCancel(): void {
+    this.dialogVisible.set(false);
   }
 }

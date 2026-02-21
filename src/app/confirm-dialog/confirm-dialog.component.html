@@ -1,0 +1,45 @@
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" *ngIf="isVisible">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 backdrop-overlay"
+        (click)="onCancel()">
+    </div>
+
+    <!-- Dialog container -->
+    <div
+        class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-(--bg-primary) border border-(--border-color) p-6 shadow-2xl transition-all duration-300 ease-out dialog-container">
+
+        <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                [class.bg-red-100]="type === 'danger'" [class.text-red-600]="type === 'danger'"
+                [class.bg-blue-100]="type === 'info'" [class.text-blue-600]="type === 'info'"
+                [class.bg-yellow-100]="type === 'warning'" [class.text-yellow-600]="type === 'warning'">
+                <i class="fa-solid" [class.fa-triangle-exclamation]="type === 'danger' || type === 'warning'"
+                    [class.fa-circle-info]="type === 'info'"></i>
+            </div>
+            <h3 class="text-lg font-semibold leading-6 text-(--text-primary)">
+                {{ title }}
+            </h3>
+        </div>
+
+        <div class="mb-6">
+            <p class="text-sm text-(--text-secondary)">
+                {{ message }}
+            </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row-reverse gap-2 sm:gap-3">
+            <button type="button"
+                class="inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 sm:w-auto"
+                [class.bg-red-600]="type === 'danger'" [class.hover:bg-red-500]="type === 'danger'"
+                [class.bg-blue-600]="type === 'info' || type === 'warning'"
+                [class.hover:bg-blue-500]="type === 'info' || type === 'warning'" (click)="onConfirm()">
+                {{ confirmText }}
+            </button>
+            <button type="button"
+                class="inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-(--text-primary) shadow-sm ring-1 ring-inset ring-(--border-color) hover:bg-(--bg-secondary) transition-all duration-200 sm:w-auto"
+                (click)="onCancel()" *ngIf="showCancel">
+                {{ cancelText }}
+            </button>
+        </div>
+    </div>
+</div>
