@@ -8,6 +8,8 @@ import { ThemeService } from './theme.service';
 import { FileService } from './file.service';
 import { MarkedPipe } from './marked.pipe';
 import { CommonModule } from '@angular/common';
+import morphdom from 'morphdom';
+import DOMPurify from 'dompurify';
 
 import { EditorState } from '@codemirror/state';
 // ... existing imports ...
@@ -54,8 +56,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   protected fileNameInput = viewChild<ElementRef<HTMLInputElement>>('fileNameInput');
   protected editorContainer = viewChild<ElementRef<HTMLDivElement>>('editorContainer');
+  protected previewContainer = viewChild<ElementRef<HTMLDivElement>>('previewContainer');
 
   private editorView?: EditorView;
+  private worker?: Worker;
+  private lastWorkerMessageId = 0;
+  private isScrolling = false;
   private readonly themeCompartment = new Compartment();
 
   constructor() {
@@ -77,18 +83,67 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       }
     });
 
+    this.initWorker();
+
     toObservable(this.fileService.content)
       .pipe(
-        debounceTime(300),
-        switchMap(content => {
-          const markedPipe = new MarkedPipe(this.sanitizer);
-          return from(markedPipe.transform(content));
-        }),
+        debounceTime(16), // 60fps-ish (16.6ms)
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe(html => {
+      .subscribe(content => {
+        this.updatePreview(content);
+      });
+  }
+
+  private initWorker(): void {
+    if (typeof Worker !== 'undefined') {
+      this.worker = new Worker(new URL('./markdown.worker', import.meta.url));
+      this.worker.onmessage = ({ data }) => {
+        const { html, id } = data;
+        if (id === this.lastWorkerMessageId) {
+          this.applyPreviewUpdate(html);
+        }
+      };
+      this.worker.onerror = (err) => {
+        console.error('Worker global error:', err);
+      };
+    } else {
+      console.warn('Web Workers are not supported in this environment.');
+    }
+  }
+
+  private updatePreview(content: string): void {
+    if (this.worker) {
+      this.lastWorkerMessageId++;
+      this.worker.postMessage({ content, id: this.lastWorkerMessageId });
+    } else {
+      // Fallback if no worker
+      const markedPipe = new MarkedPipe(this.sanitizer);
+      markedPipe.transform(content).then(html => {
         this.previewHtml.set(html);
       });
+    }
+  }
+
+  private applyPreviewUpdate(html: string): void {
+    const cleanHtml = DOMPurify.sanitize(html);
+    const container = this.previewContainer()?.nativeElement;
+
+    if (container) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = cleanHtml;
+
+      morphdom(container, wrapper, {
+        childrenOnly: true,
+        onBeforeElUpdated: (fromEl, toEl) => {
+          if (fromEl.isEqualNode(toEl)) return false;
+          // Don't morph specific elements if needed
+          return true;
+        }
+      });
+    } else {
+      this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(cleanHtml));
+    }
   }
 
   public ngAfterViewInit(): void {
@@ -117,6 +172,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           if (update.docChanged) {
             this.fileService.content.set(update.state.doc.toString());
           }
+          if (update.transactions.some(tr => tr.scrollIntoView)) {
+            this.syncScrollFromEditor();
+          }
+        }),
+        EditorView.domEventHandlers({
+          scroll: () => this.syncScrollFromEditor()
         }),
         EditorView.theme({
           "&": { height: "100%" },
@@ -129,6 +190,44 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       state: startState,
       parent: container
     });
+  }
+
+  private syncScrollFromEditor(): void {
+    if (this.isScrolling || this.expandedView() === 'editor') return;
+
+    const editorScroller = this.editorView?.scrollDOM;
+    const previewScroller = this.previewContainer()?.nativeElement;
+
+    if (editorScroller && previewScroller) {
+      const editorRange = editorScroller.scrollHeight - editorScroller.clientHeight;
+      if (editorRange <= 0) return;
+
+      this.isScrolling = true;
+      const scrollPercentage = editorScroller.scrollTop / editorRange;
+      const previewRange = previewScroller.scrollHeight - previewScroller.clientHeight;
+
+      previewScroller.scrollTop = scrollPercentage * previewRange;
+      setTimeout(() => this.isScrolling = false, 50);
+    }
+  }
+
+  protected syncScrollFromPreview(event: Event): void {
+    if (this.isScrolling || this.expandedView() === 'preview') return;
+
+    const previewScroller = event.target as HTMLElement;
+    const editorScroller = this.editorView?.scrollDOM;
+
+    if (previewScroller && editorScroller) {
+      const previewRange = previewScroller.scrollHeight - previewScroller.clientHeight;
+      if (previewRange <= 0) return;
+
+      this.isScrolling = true;
+      const scrollPercentage = previewScroller.scrollTop / previewRange;
+      const editorRange = editorScroller.scrollHeight - editorScroller.clientHeight;
+
+      editorScroller.scrollTop = scrollPercentage * editorRange;
+      setTimeout(() => this.isScrolling = false, 50);
+    }
   }
 
   public ngOnDestroy(): void {

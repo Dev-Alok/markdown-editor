@@ -101,9 +101,8 @@
               [class.fa-compress]="expandedView() === 'preview'"></i>
           </button>
         </div>
-        <div id="pdf-content"
+        <div id="pdf-content" #previewContainer (scroll)="syncScrollFromPreview($event)"
           class="markdown-preview flex-1 p-4 overflow-y-auto min-h-0 print:overflow-visible print:p-0">
-          <div [innerHTML]="previewHtml()"></div>
         </div>
       </div>
     </div>

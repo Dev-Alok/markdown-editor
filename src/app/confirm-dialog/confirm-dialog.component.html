@@ -8,14 +8,10 @@
     <div
         class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-(--bg-primary) border border-(--border-color) p-6 shadow-2xl transition-all duration-300 ease-out dialog-container">
 
-        <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                [class.bg-red-100]="type === 'danger'" [class.text-red-600]="type === 'danger'"
-                [class.bg-blue-100]="type === 'info'" [class.text-blue-600]="type === 'info'"
-                [class.bg-yellow-100]="type === 'warning'" [class.text-yellow-600]="type === 'warning'">
-                <i class="fa-solid" [class.fa-triangle-exclamation]="type === 'danger' || type === 'warning'"
-                    [class.fa-circle-info]="type === 'info'"></i>
-            </div>
+        <div class="flex items-center gap-2 mb-4">
+            <i class="fa-solid text-xl" [class.fa-triangle-exclamation]="type === 'danger' || type === 'warning'"
+                [class.fa-circle-info]="type === 'info'" [class.text-red-500]="type === 'danger'"
+                [class.text-blue-500]="type === 'info'" [class.text-yellow-500]="type === 'warning'"></i>
             <h3 class="text-lg font-semibold leading-6 text-(--text-primary)">
                 {{ title }}
             </h3>
