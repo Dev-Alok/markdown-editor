@@ -2,6 +2,8 @@
 
 A premium, feature-rich Markdown editor built with Angular. Designed for visual excellence and a seamless writing experience.
 
+[**Live Demo**](https://dev-alok.github.io/markdown-editor/)
+
 ## ✨ Key Features
 
 - **Live Preview**: Real-time rendering as you type.
