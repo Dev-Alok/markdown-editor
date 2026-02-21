@@ -1,13 +1,6 @@
-/* You can add global styles to this file, and also import other style files */
-
+@import "prismjs/themes/prism.css";
+@import "prismjs/themes/prism-tomorrow.css"(prefers-color-scheme: dark);
 @import "tailwindcss";
-
-/*
- * GitHub-flavored markdown preview styles.
- * These MUST be global because:
- * 1. Angular view encapsulation prevents component CSS from reaching [innerHTML] content
- * 2. html2pdf.js clones the DOM and needs these styles to render PDFs correctly
- */
 
 .markdown-preview {
     font-size: 1rem;
@@ -16,7 +9,6 @@
     overflow-wrap: break-word;
 }
 
-/* Headings */
 .markdown-preview h1 {
     font-size: 2em;
     font-weight: 700;
@@ -62,19 +54,16 @@
     line-height: 1.25;
 }
 
-/* First child heading shouldn't have top margin */
 .markdown-preview>*:first-child {
     margin-top: 0 !important;
 }
 
-/* Paragraphs */
 .markdown-preview p {
     margin-top: 0;
     margin-bottom: 1em;
     line-height: 1.75;
 }
 
-/* Lists */
 .markdown-preview ul,
 .markdown-preview ol {
     margin-top: 0;
@@ -103,7 +92,6 @@
     margin-top: 0.25em;
 }
 
-/* Nested lists */
 .markdown-preview ul ul,
 .markdown-preview ol ol,
 .markdown-preview ul ol,
@@ -112,7 +100,6 @@
     margin-bottom: 0.25em;
 }
 
-/* Blockquotes */
 .markdown-preview blockquote {
     margin: 0 0 1em 0;
     padding: 0.5em 1em;
@@ -126,7 +113,6 @@
     margin-bottom: 0;
 }
 
-/* Inline code */
 .markdown-preview code {
     background: var(--bg-secondary, #f8fafc);
     padding: 0.2em 0.4em;
@@ -136,7 +122,6 @@
     border: 1px solid var(--border-color, #e2e8f0);
 }
 
-/* Code blocks */
 .markdown-preview pre {
     background: var(--bg-secondary, #f8fafc);
     padding: 1em;
@@ -153,9 +138,76 @@
     background: transparent;
     border: none;
     font-size: 0.875em;
+    color: inherit;
 }
 
-/* Horizontal rules */
+[data-theme="dark"] .markdown-preview code[class*="language-"],
+[data-theme="dark"] .markdown-preview pre[class*="language-"] {
+    background: #1e293b;
+    border-color: #334155;
+    text-shadow: none;
+}
+
+[data-theme="dark"] .token.comment,
+[data-theme="dark"] .token.prolog,
+[data-theme="dark"] .token.doctype,
+[data-theme="dark"] .token.cdata {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .token.punctuation {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .token.namespace {
+    opacity: .7;
+}
+
+[data-theme="dark"] .token.property,
+[data-theme="dark"] .token.tag,
+[data-theme="dark"] .token.boolean,
+[data-theme="dark"] .token.number,
+[data-theme="dark"] .token.constant,
+[data-theme="dark"] .token.symbol,
+[data-theme="dark"] .token.deleted {
+    color: #f472b6;
+}
+
+[data-theme="dark"] .token.selector,
+[data-theme="dark"] .token.attr-name,
+[data-theme="dark"] .token.string,
+[data-theme="dark"] .token.char,
+[data-theme="dark"] .token.builtin,
+[data-theme="dark"] .token.inserted {
+    color: #a7f3d0;
+}
+
+[data-theme="dark"] .token.operator,
+[data-theme="dark"] .token.entity,
+[data-theme="dark"] .token.url,
+[data-theme="dark"] .language-css .token.string,
+[data-theme="dark"] .style .token.string {
+    color: #fbbf24;
+    background: transparent;
+}
+
+[data-theme="dark"] .token.atrule,
+[data-theme="dark"] .token.attr-value,
+[data-theme="dark"] .token.keyword {
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .token.function,
+[data-theme="dark"] .token.class-name {
+    color: #c084fc;
+}
+
+[data-theme="dark"] .token.regex,
+[data-theme="dark"] .token.important,
+[data-theme="dark"] .token.variable {
+    color: #fbbf24;
+}
+
 .markdown-preview hr {
     height: 2px;
     margin: 1.5em 0;
@@ -164,7 +216,6 @@
     border: 0;
 }
 
-/* Links */
 .markdown-preview a {
     color: var(--accent-color, #3b82f6);
     text-decoration: underline;
@@ -175,7 +226,6 @@
     opacity: 0.8;
 }
 
-/* Tables */
 .markdown-preview table {
     width: 100%;
     border-collapse: collapse;
@@ -201,7 +251,6 @@
     background: var(--bg-secondary, #f8fafc);
 }
 
-/* Images */
 .markdown-preview img {
     max-width: 100%;
     height: auto;
@@ -209,7 +258,6 @@
     margin: 0.5em 0;
 }
 
-/* Strong and emphasis */
 .markdown-preview strong {
     font-weight: 700;
 }
@@ -218,7 +266,6 @@
     font-style: italic;
 }
 
-/* Definition lists / details */
 .markdown-preview details {
     margin-bottom: 1em;
 }
@@ -228,16 +275,11 @@
     font-weight: 600;
 }
 
-/* Task lists (GitHub-style checkboxes) */
 .markdown-preview input[type="checkbox"] {
     margin-right: 0.5em;
 }
 
-/* --- Print / PDF Export Styles --- */
 @media print {
-
-    /* Hide everything except the printable areas 
-       (handled largely by print:hidden in Tailwind, but resetting body is safe) */
     body {
         background: white !important;
         color: black !important;
@@ -254,11 +296,9 @@
         max-width: 100% !important;
         width: 100% !important;
         overflow: visible !important;
-        /* Increase line-height slightly for better print readability */
         line-height: 1.6 !important;
     }
 
-    /* Prevent text elements, code blocks, lists from splitting awkwardly */
     .markdown-preview h1,
     .markdown-preview h2,
     .markdown-preview h3,
@@ -270,7 +310,6 @@
         page-break-inside: avoid;
         break-inside: avoid;
         margin-top: 1.5em;
-        /* Ensure space before headings */
     }
 
     .markdown-preview p,
@@ -282,7 +321,6 @@
         break-inside: avoid;
     }
 
-    /* Allow tables to break pages, but keep headers and rows unbroken */
     .markdown-preview table {
         page-break-inside: auto;
         break-inside: auto;
@@ -294,13 +332,11 @@
 
     .markdown-preview img {
         max-height: 90vh;
-        /* Don't stretch across pages */
         page-break-inside: avoid;
         break-inside: avoid;
         display: block;
     }
 
-    /* Optional background colors for blocks - if user enables "Print backgrounds" */
     .markdown-preview code,
     .markdown-preview pre,
     .markdown-preview blockquote,

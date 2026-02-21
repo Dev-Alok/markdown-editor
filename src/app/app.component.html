@@ -2,13 +2,11 @@
   class="h-screen flex flex-col bg-(--bg-primary) text-(--text-primary) transition-colors duration-300 overflow-hidden print:h-auto print:overflow-visible print:block"
   [attr.data-theme]="isDarkMode() ? 'dark' : 'light'">
 
-  <!-- Header: title + filename + actions, responsive -->
   <header
-    class="flex flex-wrap items-center gap-y-3 gap-x-3 px-4 py-2 border-b border-(--border-color) shrink-0 print:hidden">
+    class="flex flex-wrap items-center gap-y-3 gap_x-3 px-4 py-2 border-b border-(--border-color) shrink-0 print:hidden">
     <h1 class="text-lg font-bold m-0 tracking-tight shrink-0">{{ title }}</h1>
     <span class="text-(--text-secondary) hidden sm:inline">—</span>
 
-    <!-- Editable filename: full width on mobile, inline on desktop -->
     <div class="order-last sm:order-none w-full sm:w-auto flex items-center">
       @if (isEditingFileName()) {
       <input #fileNameInput
@@ -32,7 +30,6 @@
 
     <div class="flex-1 hidden sm:block"></div>
 
-    <!-- Action buttons -->
     <div class="flex items-center gap-2 ml-auto sm:ml-0">
       <button
         class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-(--bg-secondary) text-(--text-primary) border border-(--border-color) hover:bg-(--border-color)">
@@ -62,7 +59,6 @@
     </div>
   </header>
 
-  <!-- Editor & Preview: fills remaining viewport with edge padding -->
   <main
     class="flex-1 min-h-0 p-2 sm:p-3 lg:p-4 bg-(--bg-primary) print:p-0 print:block print:h-auto print:overflow-visible">
     <div class="h-full grid gap-2 sm:gap-3 print:grid-cols-1 print:block print:h-auto" [class.grid-cols-1]="true"
@@ -82,9 +78,7 @@
               [class.fa-compress]="expandedView() === 'editor'"></i>
           </button>
         </div>
-        <textarea [(ngModel)]="fileService.content" (paste)="handlePaste($event)"
-          class="markdown-editor flex-1 w-full p-4 border-none text-sm leading-relaxed min-h-0"
-          placeholder="Start writing your markdown here..."></textarea>
+        <div #editorContainer class="flex-1 w-full min-h-0 overflow-hidden"></div>
       </div>
       <div
         class="flex flex-col bg-(--preview-bg) min-h-0 rounded-lg border border-(--border-color) overflow-hidden print:border-none print:shadow-none print:rounded-none print:bg-white print:block"
@@ -102,7 +96,7 @@
         </div>
         <div id="pdf-content"
           class="markdown-preview flex-1 p-4 overflow-y-auto min-h-0 print:overflow-visible print:p-0">
-          <div [innerHTML]="fileService.content | marked"></div>
+          <div [innerHTML]="(fileService.content | marked) | async"></div>
         </div>
       </div>
     </div>

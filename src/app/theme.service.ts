@@ -7,7 +7,8 @@ export class ThemeService {
   private readonly DARK_MODE_KEY = 'markdown-editor-dark-mode';
 
   isDarkMode(): boolean {
-    return localStorage.getItem(this.DARK_MODE_KEY) === 'true';
+    const stored = localStorage.getItem(this.DARK_MODE_KEY);
+    return stored === null ? true : stored === 'true';
   }
 
   toggleTheme() {
