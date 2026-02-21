@@ -11,7 +11,7 @@
       @if (isEditingFileName()) {
       <input #fileNameInput
         class="text-sm sm:text-xs bg-(--bg-secondary) text-(--text-primary) border border-(--accent-color) sm:border-(--border-color) rounded-md sm:rounded px-3 sm:px-2 py-1.5 sm:py-0.5 outline-none focus:border-(--accent-color) w-full sm:w-40"
-        [value]="fileService.getFileName()" (blur)="saveFileName($event)" (keydown.enter)="saveFileName($event)"
+        [value]="fileService.fileName()" (blur)="saveFileName($event)" (keydown.enter)="saveFileName($event)"
         (keydown.escape)="cancelEditingFileName()" />
       } @else {
       <span (click)="startEditingFileName()"
@@ -20,7 +20,7 @@
         <div class="sm:hidden flex items-center">
           <i class="fa-solid fa-file-signature text-(--text-primary) opacity-70"></i>
         </div>
-        <span class="truncate flex-1 sm:flex-none">{{ fileService.getFileName() }}</span>
+        <span class="truncate flex-1 sm:flex-none">{{ fileService.fileName() }}</span>
         <span class="hidden sm:block ml-1">
           <i class="fa-solid fa-pen text-[10px] opacity-40 group-hover:opacity-100 transition-opacity"></i>
         </span>
@@ -103,7 +103,7 @@
         </div>
         <div id="pdf-content"
           class="markdown-preview flex-1 p-4 overflow-y-auto min-h-0 print:overflow-visible print:p-0">
-          <div [innerHTML]="(fileService.content | marked) | async"></div>
+          <div [innerHTML]="previewHtml()"></div>
         </div>
       </div>
     </div>

@@ -1,4 +1,8 @@
-import { Component, viewChild, signal, ElementRef, inject, AfterViewInit, OnDestroy, effect } from '@angular/core';
+import { Component, viewChild, signal, ElementRef, inject, AfterViewInit, OnDestroy, effect, DestroyRef } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, from } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from './theme.service';
 import { FileService } from './file.service';
@@ -6,6 +10,7 @@ import { MarkedPipe } from './marked.pipe';
 import { CommonModule } from '@angular/common';
 
 import { EditorState } from '@codemirror/state';
+// ... existing imports ...
 import {
   EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
   rectangularSelection, lineNumbers, highlightSpecialChars
@@ -31,10 +36,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private readonly themeService = inject(ThemeService);
   protected readonly fileService = inject(FileService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly sanitizer = inject(DomSanitizer);
 
   protected isDarkMode = signal(this.themeService.isDarkMode());
   protected isEditingFileName = signal(false);
   protected expandedView = signal<'editor' | 'preview' | null>(null);
+  protected previewHtml = signal<SafeHtml>('');
 
   // Dialog state
   protected dialogVisible = signal(false);
@@ -52,7 +60,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      const content = this.fileService.content;
+      const content = this.fileService.content();
       if (this.editorView && content !== this.editorView.state.doc.toString()) {
         this.editorView.dispatch({
           changes: { from: 0, to: this.editorView.state.doc.length, insert: content }
@@ -68,6 +76,19 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         });
       }
     });
+
+    toObservable(this.fileService.content)
+      .pipe(
+        debounceTime(300),
+        switchMap(content => {
+          const markedPipe = new MarkedPipe(this.sanitizer);
+          return from(markedPipe.transform(content));
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(html => {
+        this.previewHtml.set(html);
+      });
   }
 
   public ngAfterViewInit(): void {
@@ -75,7 +96,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (!container) return;
 
     const startState = EditorState.create({
-      doc: this.fileService.content,
+      doc: this.fileService.content(),
       extensions: [
         lineNumbers(),
         highlightSpecialChars(),
@@ -94,7 +115,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         this.themeCompartment.of(this.isDarkMode() ? oneDark : []),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            this.fileService.content = update.state.doc.toString();
+            this.fileService.content.set(update.state.doc.toString());
           }
         }),
         EditorView.theme({
@@ -156,7 +177,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const newName = input.value.trim();
     if (newName) {
       const name = newName.endsWith('.md') ? newName : newName + '.md';
-      this.fileService.setFileName(name);
+      this.fileService.fileName.set(name);
     }
     this.isEditingFileName.set(false);
   }

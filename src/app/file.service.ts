@@ -1,5 +1,6 @@
-import { Injectable, signal, effect } from '@angular/core';
-import { marked } from 'marked';
+import { Injectable, signal, DestroyRef, inject } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -7,39 +8,34 @@ import { marked } from 'marked';
 export class FileService {
   private readonly STORAGE_KEY_CONTENT = 'md-editor-content';
   private readonly STORAGE_KEY_FILENAME = 'md-editor-filename';
+  private readonly destroyRef = inject(DestroyRef);
 
-  private _fileName = signal(localStorage.getItem(this.STORAGE_KEY_FILENAME) || 'untitled.md');
-  private _content = signal(localStorage.getItem(this.STORAGE_KEY_CONTENT) || '');
+  public readonly fileName = signal(localStorage.getItem(this.STORAGE_KEY_FILENAME) || 'untitled.md');
+  public readonly content = signal(localStorage.getItem(this.STORAGE_KEY_CONTENT) || '');
 
   constructor() {
-    effect(() => {
-      localStorage.setItem(this.STORAGE_KEY_CONTENT, this._content());
-    });
+    toObservable(this.content)
+      .pipe(
+        debounceTime(500),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(content => {
+        localStorage.setItem(this.STORAGE_KEY_CONTENT, content);
+      });
 
-    effect(() => {
-      localStorage.setItem(this.STORAGE_KEY_FILENAME, this._fileName());
-    });
-  }
-
-  public get content(): string {
-    return this._content();
-  }
-
-  public set content(value: string) {
-    this._content.set(value);
-  }
-
-  public getFileName(): string {
-    return this._fileName();
-  }
-
-  public setFileName(fileName: string): void {
-    this._fileName.set(fileName);
+    toObservable(this.fileName)
+      .pipe(
+        debounceTime(500),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(name => {
+        localStorage.setItem(this.STORAGE_KEY_FILENAME, name);
+      });
   }
 
   public clearStorage(): void {
-    this._content.set('');
-    this._fileName.set('untitled.md');
+    this.content.set('');
+    this.fileName.set('untitled.md');
     localStorage.removeItem(this.STORAGE_KEY_CONTENT);
     localStorage.removeItem(this.STORAGE_KEY_FILENAME);
   }
@@ -49,8 +45,8 @@ export class FileService {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        this.content = text;
-        this.setFileName(file.name);
+        this.content.set(text);
+        this.fileName.set(file.name);
       };
       reader.readAsText(file);
     } else {
@@ -59,16 +55,16 @@ export class FileService {
   }
 
   public loadText(text: string): void {
-    this.content = text;
-    this.setFileName('pasted-content.md');
+    this.content.set(text);
+    this.fileName.set('pasted-content.md');
   }
 
   public downloadMarkdown(): void {
-    const blob = new Blob([this.content], { type: 'text/markdown' });
+    const blob = new Blob([this.content()], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = this.getFileName();
+    a.download = this.fileName();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
