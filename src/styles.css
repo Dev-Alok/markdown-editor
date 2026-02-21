@@ -1,0 +1,313 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "tailwindcss";
+
+/*
+ * GitHub-flavored markdown preview styles.
+ * These MUST be global because:
+ * 1. Angular view encapsulation prevents component CSS from reaching [innerHTML] content
+ * 2. html2pdf.js clones the DOM and needs these styles to render PDFs correctly
+ */
+
+.markdown-preview {
+    font-size: 1rem;
+    line-height: 1.75;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Headings */
+.markdown-preview h1 {
+    font-size: 2em;
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    line-height: 1.25;
+}
+
+.markdown-preview h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    line-height: 1.25;
+}
+
+.markdown-preview h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.25;
+}
+
+.markdown-preview h4 {
+    font-size: 1em;
+    font-weight: 600;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    line-height: 1.25;
+}
+
+.markdown-preview h5,
+.markdown-preview h6 {
+    font-size: 0.875em;
+    font-weight: 600;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    line-height: 1.25;
+}
+
+/* First child heading shouldn't have top margin */
+.markdown-preview>*:first-child {
+    margin-top: 0 !important;
+}
+
+/* Paragraphs */
+.markdown-preview p {
+    margin-top: 0;
+    margin-bottom: 1em;
+    line-height: 1.75;
+}
+
+/* Lists */
+.markdown-preview ul,
+.markdown-preview ol {
+    margin-top: 0;
+    margin-bottom: 1em;
+    padding-left: 2em;
+}
+
+.markdown-preview ul {
+    list-style-type: disc;
+}
+
+.markdown-preview ol {
+    list-style-type: decimal;
+}
+
+.markdown-preview li {
+    margin-bottom: 0.35em;
+    line-height: 1.65;
+}
+
+.markdown-preview li>p {
+    margin-bottom: 0.5em;
+}
+
+.markdown-preview li+li {
+    margin-top: 0.25em;
+}
+
+/* Nested lists */
+.markdown-preview ul ul,
+.markdown-preview ol ol,
+.markdown-preview ul ol,
+.markdown-preview ol ul {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+/* Blockquotes */
+.markdown-preview blockquote {
+    margin: 0 0 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--accent-color, #3b82f6);
+    color: var(--text-secondary, #64748b);
+    background: var(--bg-secondary, #f8fafc);
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.markdown-preview blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* Inline code */
+.markdown-preview code {
+    background: var(--bg-secondary, #f8fafc);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+/* Code blocks */
+.markdown-preview pre {
+    background: var(--bg-secondary, #f8fafc);
+    padding: 1em;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-top: 0;
+    margin-bottom: 1em;
+    border: 1px solid var(--border-color, #e2e8f0);
+    line-height: 1.5;
+}
+
+.markdown-preview pre code {
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 0.875em;
+}
+
+/* Horizontal rules */
+.markdown-preview hr {
+    height: 2px;
+    margin: 1.5em 0;
+    padding: 0;
+    background-color: var(--border-color, #e2e8f0);
+    border: 0;
+}
+
+/* Links */
+.markdown-preview a {
+    color: var(--accent-color, #3b82f6);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.markdown-preview a:hover {
+    opacity: 0.8;
+}
+
+/* Tables */
+.markdown-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0;
+    margin-bottom: 1em;
+    border-spacing: 0;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.6em 0.8em;
+    text-align: left;
+    line-height: 1.5;
+}
+
+.markdown-preview th {
+    background: var(--bg-secondary, #f8fafc);
+    font-weight: 600;
+}
+
+.markdown-preview tr:nth-child(even) {
+    background: var(--bg-secondary, #f8fafc);
+}
+
+/* Images */
+.markdown-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 0.5em 0;
+}
+
+/* Strong and emphasis */
+.markdown-preview strong {
+    font-weight: 700;
+}
+
+.markdown-preview em {
+    font-style: italic;
+}
+
+/* Definition lists / details */
+.markdown-preview details {
+    margin-bottom: 1em;
+}
+
+.markdown-preview summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* Task lists (GitHub-style checkboxes) */
+.markdown-preview input[type="checkbox"] {
+    margin-right: 0.5em;
+}
+
+/* --- Print / PDF Export Styles --- */
+@media print {
+
+    /* Hide everything except the printable areas 
+       (handled largely by print:hidden in Tailwind, but resetting body is safe) */
+    body {
+        background: white !important;
+        color: black !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    .markdown-preview {
+        padding: 0 !important;
+        margin: 0 !important;
+        color: black !important;
+        border: none !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow: visible !important;
+        /* Increase line-height slightly for better print readability */
+        line-height: 1.6 !important;
+    }
+
+    /* Prevent text elements, code blocks, lists from splitting awkwardly */
+    .markdown-preview h1,
+    .markdown-preview h2,
+    .markdown-preview h3,
+    .markdown-preview h4,
+    .markdown-preview h5,
+    .markdown-preview h6 {
+        page-break-after: avoid;
+        break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        margin-top: 1.5em;
+        /* Ensure space before headings */
+    }
+
+    .markdown-preview p,
+    .markdown-preview li,
+    .markdown-preview tr,
+    .markdown-preview blockquote,
+    .markdown-preview pre {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Allow tables to break pages, but keep headers and rows unbroken */
+    .markdown-preview table {
+        page-break-inside: auto;
+        break-inside: auto;
+    }
+
+    .markdown-preview thead {
+        display: table-header-group;
+    }
+
+    .markdown-preview img {
+        max-height: 90vh;
+        /* Don't stretch across pages */
+        page-break-inside: avoid;
+        break-inside: avoid;
+        display: block;
+    }
+
+    /* Optional background colors for blocks - if user enables "Print backgrounds" */
+    .markdown-preview code,
+    .markdown-preview pre,
+    .markdown-preview blockquote,
+    .markdown-preview th,
+    .markdown-preview tr:nth-child(even) {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #f8fafc !important;
+    }
+}

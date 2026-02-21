@@ -1,0 +1,110 @@
+<div
+  class="h-screen flex flex-col bg-(--bg-primary) text-(--text-primary) transition-colors duration-300 overflow-hidden print:h-auto print:overflow-visible print:block"
+  [attr.data-theme]="isDarkMode() ? 'dark' : 'light'">
+
+  <!-- Header: title + filename + actions, responsive -->
+  <header
+    class="flex flex-wrap items-center gap-y-3 gap-x-3 px-4 py-2 border-b border-(--border-color) shrink-0 print:hidden">
+    <h1 class="text-lg font-bold m-0 tracking-tight shrink-0">{{ title }}</h1>
+    <span class="text-(--text-secondary) hidden sm:inline">—</span>
+
+    <!-- Editable filename: full width on mobile, inline on desktop -->
+    <div class="order-last sm:order-none w-full sm:w-auto flex items-center">
+      @if (isEditingFileName()) {
+      <input #fileNameInput
+        class="text-sm sm:text-xs bg-(--bg-secondary) text-(--text-primary) border border-(--accent-color) sm:border-(--border-color) rounded-md sm:rounded px-3 sm:px-2 py-1.5 sm:py-0.5 outline-none focus:border-(--accent-color) w-full sm:w-40"
+        [value]="fileService.getFileName()" (blur)="saveFileName($event)" (keydown.enter)="saveFileName($event)"
+        (keydown.escape)="cancelEditingFileName()" />
+      } @else {
+      <span (click)="startEditingFileName()"
+        class="group flex items-center gap-2 text-sm sm:text-xs text-(--text-secondary) cursor-pointer hover:text-(--text-primary) transition-colors duration-150 bg-(--bg-secondary) sm:bg-transparent px-3 sm:px-0 py-1.5 sm:py-0 border border-(--border-color) sm:border-transparent rounded-md sm:rounded-none w-full sm:w-auto"
+        title="Click to rename">
+        <div class="sm:hidden flex items-center">
+          <i class="fa-solid fa-file-signature text-(--text-primary) opacity-70"></i>
+        </div>
+        <span class="truncate flex-1 sm:flex-none">{{ fileService.getFileName() }}</span>
+        <span class="hidden sm:block ml-1">
+          <i class="fa-solid fa-pen text-[10px] opacity-40 group-hover:opacity-100 transition-opacity"></i>
+        </span>
+      </span>
+      }
+    </div>
+
+    <div class="flex-1 hidden sm:block"></div>
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-2 ml-auto sm:ml-0">
+      <button
+        class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-(--bg-secondary) text-(--text-primary) border border-(--border-color) hover:bg-(--border-color)">
+        <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+        <span class="hidden sm:inline">Upload</span>
+        <input type="file" (change)="handleFileUpload($event)" accept=".md"
+          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+      </button>
+      <button
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-(--bg-secondary) text-(--text-primary) border border-(--border-color) hover:bg-(--border-color)"
+        (click)="downloadMarkdown()">
+        <i class="fa-solid fa-download text-xs"></i>
+        <span class="hidden sm:inline">Download</span>
+      </button>
+      <button
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 border-transparent"
+        (click)="downloadPDF()">
+        <i class="fa-solid fa-file-pdf text-xs"></i>
+        <span class="hidden sm:inline">PDF</span>
+      </button>
+      <div class="w-px h-5 bg-(--border-color) mx-1"></div>
+      <button
+        class="w-8 h-8 flex items-center justify-center rounded-md bg-(--bg-secondary) border border-(--border-color) text-(--text-primary) hover:bg-(--border-color) transition-all duration-200 cursor-pointer"
+        (click)="toggleTheme()" [attr.aria-label]="isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
+        <i class="fa-solid text-sm" [class.fa-sun]="isDarkMode()" [class.fa-moon]="!isDarkMode()"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Editor & Preview: fills remaining viewport with edge padding -->
+  <main
+    class="flex-1 min-h-0 p-2 sm:p-3 lg:p-4 bg-(--bg-primary) print:p-0 print:block print:h-auto print:overflow-visible">
+    <div class="h-full grid gap-2 sm:gap-3 print:grid-cols-1 print:block print:h-auto" [class.grid-cols-1]="true"
+      [class.grid-rows-2]="expandedView() === null" [class.lg:grid-rows-1]="expandedView() === null"
+      [class.lg:grid-cols-2]="expandedView() === null">
+      <div
+        class="flex flex-col bg-(--editor-bg) min-h-0 rounded-lg border border-(--border-color) overflow-hidden print:hidden"
+        [class.hidden]="expandedView() === 'preview'">
+        <div
+          class="bg-(--bg-secondary) px-4 py-1.5 border-b border-(--border-color) text-xs font-semibold text-(--text-secondary) uppercase tracking-wider shrink-0 flex justify-between items-center">
+          <span>Editor</span>
+          <button (click)="toggleExpand('editor')"
+            class="text-(--text-secondary) hover:text-(--text-primary) transition-colors"
+            [attr.aria-label]="expandedView() === 'editor' ? 'Collapse Editor' : 'Expand Editor'"
+            title="Toggle Full Width">
+            <i class="fa-solid" [class.fa-expand]="expandedView() !== 'editor'"
+              [class.fa-compress]="expandedView() === 'editor'"></i>
+          </button>
+        </div>
+        <textarea [(ngModel)]="fileService.content" (paste)="handlePaste($event)"
+          class="markdown-editor flex-1 w-full p-4 border-none text-sm leading-relaxed min-h-0"
+          placeholder="Start writing your markdown here..."></textarea>
+      </div>
+      <div
+        class="flex flex-col bg-(--preview-bg) min-h-0 rounded-lg border border-(--border-color) overflow-hidden print:border-none print:shadow-none print:rounded-none print:bg-white print:block"
+        [class.hidden]="expandedView() === 'editor'">
+        <div
+          class="bg-(--bg-secondary) px-4 py-1.5 border-b border-(--border-color) text-xs font-semibold text-(--text-secondary) uppercase tracking-wider shrink-0 print:hidden flex justify-between items-center">
+          <span>Preview</span>
+          <button (click)="toggleExpand('preview')"
+            class="text-(--text-secondary) hover:text-(--text-primary) transition-colors"
+            [attr.aria-label]="expandedView() === 'preview' ? 'Collapse Preview' : 'Expand Preview'"
+            title="Toggle Full Width">
+            <i class="fa-solid" [class.fa-expand]="expandedView() !== 'preview'"
+              [class.fa-compress]="expandedView() === 'preview'"></i>
+          </button>
+        </div>
+        <div id="pdf-content"
+          class="markdown-preview flex-1 p-4 overflow-y-auto min-h-0 print:overflow-visible print:p-0">
+          <div [innerHTML]="fileService.content | marked"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
