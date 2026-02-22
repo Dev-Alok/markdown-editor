@@ -1,28 +1,15 @@
-import { Component, viewChild, signal, ElementRef, inject, AfterViewInit, OnDestroy, effect, DestroyRef } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Component, viewChild, signal, ElementRef, inject, AfterViewInit, OnDestroy, effect, DestroyRef, afterNextRender } from '@angular/core';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime } from 'rxjs';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+
 import { ThemeService } from './theme.service';
 import { FileService } from './file.service';
-import { MarkedPipe } from './marked.pipe';
-import { CommonModule } from '@angular/common';
-import morphdom from 'morphdom';
-import DOMPurify from 'dompurify';
-
-import { EditorState } from '@codemirror/state';
-// ... existing imports ...
-import {
-  EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
-  rectangularSelection, lineNumbers, highlightSpecialChars
-} from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { markdown } from '@codemirror/lang-markdown';
-import { languages } from '@codemirror/language-data';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { Compartment } from '@codemirror/state';
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-
+import { DialogService } from './dialog.service';
+import { PreviewService } from './preview.service';
+import { EditorService } from './editor.service';
+import { ScrollSyncService } from './scroll-sync.service';
 import { ConfirmDialogComponent } from './confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -37,223 +24,80 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private readonly themeService = inject(ThemeService);
   protected readonly fileService = inject(FileService);
+  protected readonly dialogService = inject(DialogService);
+  private readonly previewService = inject(PreviewService);
+  private readonly editorService = inject(EditorService);
+  private readonly scrollSyncService = inject(ScrollSyncService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly sanitizer = inject(DomSanitizer);
 
   protected isDarkMode = signal(this.themeService.isDarkMode());
   protected isEditingFileName = signal(false);
   protected expandedView = signal<'editor' | 'preview' | null>(null);
-  protected previewHtml = signal<SafeHtml>('');
-
-  // Dialog state
-  protected dialogVisible = signal(false);
-  protected dialogTitle = signal('');
-  protected dialogMessage = signal('');
-  protected dialogType = signal<'info' | 'warning' | 'danger'>('info');
-  protected dialogConfirmText = signal('Confirm');
-  private dialogOnConfirm: () => void = () => { };
 
   protected fileNameInput = viewChild<ElementRef<HTMLInputElement>>('fileNameInput');
   protected editorContainer = viewChild<ElementRef<HTMLDivElement>>('editorContainer');
   protected previewContainer = viewChild<ElementRef<HTMLDivElement>>('previewContainer');
 
-  private editorView?: EditorView;
-  private worker?: Worker;
-  private lastWorkerMessageId = 0;
-  private isScrolling = false;
-  private readonly themeCompartment = new Compartment();
-
   constructor() {
     effect(() => {
       const content = this.fileService.content();
-      if (this.editorView && content !== this.editorView.state.doc.toString()) {
-        this.editorView.dispatch({
-          changes: { from: 0, to: this.editorView.state.doc.length, insert: content }
-        });
-      }
+      this.editorService.updateContent(content);
     });
 
     effect(() => {
       const isDark = this.isDarkMode();
-      if (this.editorView) {
-        this.editorView.dispatch({
-          effects: this.themeCompartment.reconfigure(isDark ? oneDark : [])
-        });
-      }
+      this.editorService.updateTheme(isDark);
     });
-
-    this.initWorker();
 
     toObservable(this.fileService.content)
       .pipe(
-        debounceTime(16), // 60fps-ish (16.6ms)
+        debounceTime(16),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(content => {
-        this.updatePreview(content);
+        this.previewService.render(content);
       });
-  }
-
-  private initWorker(): void {
-    if (typeof Worker !== 'undefined') {
-      this.worker = new Worker(new URL('./markdown.worker', import.meta.url));
-      this.worker.onmessage = ({ data }) => {
-        let parsedData = data;
-        if (typeof data === 'string') {
-          try {
-            parsedData = JSON.parse(data);
-          } catch (e) {
-            return; // Ignore invalid JSON strings
-          }
-        }
-
-        if (!parsedData || typeof parsedData !== 'object') {
-          console.warn('Main Thread: Received invalid data from worker:', parsedData);
-          return;
-        }
-
-        const { html, id, error } = parsedData;
-
-        if (error) {
-          console.error('Main Thread: Worker reported error:', error);
-        }
-
-        if (id === this.lastWorkerMessageId) {
-          this.applyPreviewUpdate(html);
-        }
-      };
-      this.worker.onerror = (err) => {
-        if (err.message?.includes('has no grammar')) {
-          err.preventDefault();
-          return;
-        }
-        console.error('Main Thread: Worker global error:', err.message);
-      };
-    } else {
-      console.warn('Web Workers are not supported in this environment.');
-    }
-  }
-
-  private updatePreview(content: string): void {
-    if (this.worker) {
-      this.lastWorkerMessageId++;
-      this.worker.postMessage(JSON.stringify({ content, id: this.lastWorkerMessageId }));
-    } else {
-      // Fallback if no worker
-      const markedPipe = new MarkedPipe(this.sanitizer);
-      markedPipe.transform(content).then(html => {
-        this.previewHtml.set(html);
-      });
-    }
-  }
-
-  private applyPreviewUpdate(html: string): void {
-    const cleanHtml = DOMPurify.sanitize(html);
-    const container = this.previewContainer()?.nativeElement;
-
-    if (container) {
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = cleanHtml;
-
-      morphdom(container, wrapper, {
-        childrenOnly: true,
-        onBeforeElUpdated: (fromEl, toEl) => {
-          if (fromEl.isEqualNode(toEl)) return false;
-          // Don't morph specific elements if needed
-          return true;
-        }
-      });
-    } else {
-      this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(cleanHtml));
-    }
   }
 
   public ngAfterViewInit(): void {
     const container = this.editorContainer()?.nativeElement;
     if (!container) return;
 
-    const startState = EditorState.create({
-      doc: this.fileService.content(),
-      extensions: [
-        lineNumbers(),
-        highlightSpecialChars(),
-        history(),
-        drawSelection(),
-        dropCursor(),
-        EditorState.allowMultipleSelections.of(true),
-        rectangularSelection(),
-        highlightActiveLine(),
-        keymap.of([
-          ...defaultKeymap,
-          ...historyKeymap,
-        ]),
-        markdown({ codeLanguages: languages }),
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        this.themeCompartment.of(this.isDarkMode() ? oneDark : []),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            this.fileService.content.set(update.state.doc.toString());
-          }
-          if (update.transactions.some(tr => tr.scrollIntoView)) {
-            this.syncScrollFromEditor();
-          }
-        }),
-        EditorView.domEventHandlers({
-          scroll: () => this.syncScrollFromEditor()
-        }),
-        EditorView.theme({
-          "&": { height: "100%" },
-          ".cm-scroller": { overflow: "auto" }
-        })
-      ]
-    });
+    const previewEl = this.previewContainer()?.nativeElement;
+    if (previewEl) {
+      this.previewService.setContainer(previewEl);
+    }
 
-    this.editorView = new EditorView({
-      state: startState,
-      parent: container
+    this.editorService.init(container, this.fileService.content(), this.isDarkMode(), {
+      onContentChange: (content) => this.fileService.content.set(content),
+      onScroll: () => this.syncScrollFromEditor()
     });
   }
 
   private syncScrollFromEditor(): void {
-    if (this.isScrolling || this.expandedView() === 'editor') return;
+    if (this.expandedView() === 'editor') return;
 
-    const editorScroller = this.editorView?.scrollDOM;
-    const previewScroller = this.previewContainer()?.nativeElement;
+    const editorScrollDOM = this.editorService.scrollDOM;
+    const previewEl = this.previewContainer()?.nativeElement;
 
-    if (editorScroller && previewScroller) {
-      const editorRange = editorScroller.scrollHeight - editorScroller.clientHeight;
-      if (editorRange <= 0) return;
-
-      this.isScrolling = true;
-      const scrollPercentage = editorScroller.scrollTop / editorRange;
-      const previewRange = previewScroller.scrollHeight - previewScroller.clientHeight;
-
-      previewScroller.scrollTop = scrollPercentage * previewRange;
-      setTimeout(() => this.isScrolling = false, 50);
+    if (editorScrollDOM && previewEl) {
+      this.scrollSyncService.syncFromEditor(editorScrollDOM, previewEl);
     }
   }
 
   protected syncScrollFromPreview(event: Event): void {
-    if (this.isScrolling || this.expandedView() === 'preview') return;
+    if (this.expandedView() === 'preview') return;
 
-    const previewScroller = event.target as HTMLElement;
-    const editorScroller = this.editorView?.scrollDOM;
+    const previewEl = event.target as HTMLElement;
+    const editorScrollDOM = this.editorService.scrollDOM;
 
-    if (previewScroller && editorScroller) {
-      const previewRange = previewScroller.scrollHeight - previewScroller.clientHeight;
-      if (previewRange <= 0) return;
-
-      this.isScrolling = true;
-      const scrollPercentage = previewScroller.scrollTop / previewRange;
-      const editorRange = editorScroller.scrollHeight - editorScroller.clientHeight;
-
-      editorScroller.scrollTop = scrollPercentage * editorRange;
-      setTimeout(() => this.isScrolling = false, 50);
+    if (previewEl && editorScrollDOM) {
+      this.scrollSyncService.syncFromPreview(previewEl, editorScrollDOM);
     }
   }
 
   public ngOnDestroy(): void {
-    this.editorView?.destroy();
+    this.editorService.destroy();
   }
 
   protected toggleTheme(): void {
@@ -264,8 +108,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   protected handleFileUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      this.fileService.loadFile(file);
+      this.fileService.loadFile(input.files[0]);
     }
   }
 
@@ -286,7 +129,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   protected startEditingFileName(): void {
     this.isEditingFileName.set(true);
-    setTimeout(() => {
+    afterNextRender(() => {
       const el = this.fileNameInput()?.nativeElement;
       el?.focus();
       el?.select();
@@ -308,46 +151,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   protected toggleExpand(view: 'editor' | 'preview'): void {
-    if (this.expandedView() === view) {
-      this.expandedView.set(null);
-    } else {
-      this.expandedView.set(view);
-    }
+    this.expandedView.set(this.expandedView() === view ? null : view);
   }
 
   protected clearEditor(): void {
-    this.openDialog({
+    this.dialogService.open({
       title: 'Clear Editor',
       message: 'Are you sure you want to clear the editor? This will erase your unsaved work.',
       type: 'danger',
       confirmText: 'Clear Everything',
-      onConfirm: () => {
-        this.fileService.clearStorage();
-      }
+      onConfirm: () => this.fileService.clearStorage()
     });
-  }
-
-  private openDialog(options: {
-    title: string,
-    message: string,
-    type?: 'info' | 'warning' | 'danger',
-    confirmText?: string,
-    onConfirm: () => void
-  }): void {
-    this.dialogTitle.set(options.title);
-    this.dialogMessage.set(options.message);
-    this.dialogType.set(options.type || 'info');
-    this.dialogConfirmText.set(options.confirmText || 'Confirm');
-    this.dialogOnConfirm = options.onConfirm;
-    this.dialogVisible.set(true);
-  }
-
-  protected handleDialogConfirm(): void {
-    this.dialogOnConfirm();
-    this.dialogVisible.set(false);
-  }
-
-  protected handleDialogCancel(): void {
-    this.dialogVisible.set(false);
   }
 }

@@ -108,8 +108,10 @@
     </div>
   </main>
 
-  <app-confirm-dialog [isVisible]="dialogVisible()" [title]="dialogTitle()" [message]="dialogMessage()"
-    [type]="dialogType()" [confirmText]="dialogConfirmText()" (confirm)="handleDialogConfirm()"
-    (cancel)="handleDialogCancel()">
-  </app-confirm-dialog>
+  @if (dialogService.dialog(); as d) {
+    <app-confirm-dialog [isVisible]="true" [title]="d.title" [message]="d.message"
+      [type]="d.type" [confirmText]="d.confirmText" (confirm)="dialogService.confirm()"
+      (cancel)="dialogService.close()">
+    </app-confirm-dialog>
+  }
 </div>
