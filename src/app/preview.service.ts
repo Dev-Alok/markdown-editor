@@ -13,6 +13,10 @@ export class PreviewService implements OnDestroy {
     private worker?: Worker;
     private lastMessageId = 0;
 
+    /** Lazily-loaded mermaid instance (loaded only when diagrams are encountered). */
+    private mermaidInstance?: typeof import('mermaid').default;
+    private isDark = false;
+
     public readonly previewHtml = signal<SafeHtml>('');
 
     constructor() {
@@ -98,13 +102,87 @@ export class PreviewService implements OnDestroy {
             morphdom(container, wrapper, {
                 childrenOnly: true,
                 onBeforeElUpdated: (fromEl, toEl) => {
+                    // Preserve already-rendered mermaid blocks when the source hasn't changed.
+                    // After mermaid renders, the div's innerHTML is an SVG but we store the
+                    // original source in data-mermaid-source so we can compare on re-renders.
+                    if (
+                        fromEl.classList.contains('mermaid-source') &&
+                        (fromEl as HTMLElement).dataset['mermaidSource'] !== undefined &&
+                        (fromEl as HTMLElement).dataset['mermaidSource'] === toEl.textContent?.trim()
+                    ) {
+                        return false;
+                    }
                     if (fromEl.isEqualNode(toEl)) return false;
                     return true;
                 }
             });
+
+            // Render any mermaid blocks that haven't been processed yet (fire-and-forget).
+            this.renderMermaidBlocks(container);
         } else {
             this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(cleanHtml));
         }
+    }
+
+    // ─── Mermaid ───────────────────────────────────────────────────────────────
+
+    private async getMermaid(): Promise<typeof import('mermaid').default> {
+        if (!this.mermaidInstance) {
+            const mod = await import('mermaid');
+            this.mermaidInstance = mod.default;
+            this.mermaidInstance.initialize({
+                startOnLoad: false,
+                theme: this.isDark ? 'dark' : 'default',
+            });
+        }
+        return this.mermaidInstance;
+    }
+
+    private async renderMermaidBlocks(container: HTMLElement): Promise<void> {
+        const blocks = Array.from(
+            container.querySelectorAll<HTMLElement>('.mermaid-source:not([data-mermaid-source])')
+        );
+        if (blocks.length === 0) return;
+
+        const mermaid = await this.getMermaid();
+
+        for (const block of blocks) {
+            const source = block.textContent?.trim() ?? '';
+            try {
+                await mermaid.run({ nodes: [block], suppressErrors: true });
+                // Store the original source so we can skip re-rendering when unchanged.
+                block.dataset['mermaidSource'] = source;
+            } catch (err) {
+                console.warn('Mermaid rendering error:', err);
+                block.textContent = `⚠ Could not render diagram`;
+            }
+        }
+    }
+
+    /**
+     * Updates the mermaid theme and re-renders any existing diagrams in the preview.
+     * Called by AppComponent when the user toggles light/dark mode.
+     */
+    public async updateMermaidTheme(isDark: boolean): Promise<void> {
+        this.isDark = isDark;
+        if (!this.mermaidInstance || !this.previewContainer) return;
+
+        this.mermaidInstance.initialize({
+            startOnLoad: false,
+            theme: isDark ? 'dark' : 'default',
+        });
+
+        // Reset rendered state so all blocks get re-rendered with the new theme.
+        const rendered = Array.from(
+            this.previewContainer.querySelectorAll<HTMLElement>('.mermaid-source[data-mermaid-source]')
+        );
+        for (const block of rendered) {
+            const source = block.dataset['mermaidSource']!;
+            block.textContent = source;
+            delete block.dataset['mermaidSource'];
+        }
+
+        await this.renderMermaidBlocks(this.previewContainer);
     }
 
     public ngOnDestroy(): void {

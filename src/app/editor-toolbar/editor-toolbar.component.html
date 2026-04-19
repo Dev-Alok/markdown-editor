@@ -1,0 +1,72 @@
+<div
+  class="flex items-center gap-0 px-1.5 py-1 overflow-x-auto shrink-0 border-b border-(--border-color)"
+  role="toolbar"
+  aria-label="Formatting toolbar">
+
+  <!-- Headings -->
+  <div class="flex items-center gap-0">
+    <button class="toolbar-btn font-bold" (click)="applyFormat('h1')" title="Heading 1" type="button">H1</button>
+    <button class="toolbar-btn font-bold" (click)="applyFormat('h2')" title="Heading 2" type="button">H2</button>
+    <button class="toolbar-btn font-bold" (click)="applyFormat('h3')" title="Heading 3" type="button">H3</button>
+  </div>
+
+  <span class="toolbar-sep"></span>
+
+  <!-- Inline formatting -->
+  <div class="flex items-center gap-0">
+    <button class="toolbar-btn" (click)="applyFormat('bold')" title="Bold" type="button">
+      <i class="fa-solid fa-bold fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('italic')" title="Italic" type="button">
+      <i class="fa-solid fa-italic fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('strikethrough')" title="Strikethrough" type="button">
+      <i class="fa-solid fa-strikethrough fa-xs"></i>
+    </button>
+  </div>
+
+  <span class="toolbar-sep"></span>
+
+  <!-- Code -->
+  <div class="flex items-center gap-0">
+    <button class="toolbar-btn" (click)="applyFormat('code')" title="Inline Code" type="button">
+      <i class="fa-solid fa-code fa-xs"></i>
+    </button>
+    <button class="toolbar-btn font-mono text-[11px] leading-none" (click)="applyFormat('code-block')" title="Code Block" type="button">
+      ```
+    </button>
+  </div>
+
+  <span class="toolbar-sep"></span>
+
+  <!-- Block elements -->
+  <div class="flex items-center gap-0">
+    <button class="toolbar-btn" (click)="applyFormat('quote')" title="Blockquote" type="button">
+      <i class="fa-solid fa-quote-right fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('ul')" title="Unordered List" type="button">
+      <i class="fa-solid fa-list-ul fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('ol')" title="Ordered List" type="button">
+      <i class="fa-solid fa-list-ol fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('hr')" title="Horizontal Rule" type="button">
+      <i class="fa-solid fa-minus fa-xs"></i>
+    </button>
+  </div>
+
+  <span class="toolbar-sep"></span>
+
+  <!-- Insert -->
+  <div class="flex items-center gap-0">
+    <button class="toolbar-btn" (click)="applyFormat('link')" title="Link" type="button">
+      <i class="fa-solid fa-link fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('image')" title="Image" type="button">
+      <i class="fa-solid fa-image fa-xs"></i>
+    </button>
+    <button class="toolbar-btn" (click)="applyFormat('table')" title="Table" type="button">
+      <i class="fa-solid fa-table fa-xs"></i>
+    </button>
+  </div>
+</div>

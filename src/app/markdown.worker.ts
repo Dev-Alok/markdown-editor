@@ -34,6 +34,26 @@ markedInstance.setOptions({
     breaks: true,
 });
 
+// Override the code renderer for mermaid blocks.
+// This extension is added AFTER markedHighlight so it runs first (last-in = first-run).
+// For lang === 'mermaid' we emit a plain div; for everything else we return false so
+// markedHighlight's renderer handles the syntax highlighting as usual.
+markedInstance.use({
+    renderer: {
+        code(token) {
+            if (token.lang === 'mermaid') {
+                const escaped = token.text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+                return `<div class="mermaid-source">${escaped}</div>\n`;
+            }
+            return false;
+        }
+    }
+});
+
 addEventListener('message', async ({ data }) => {
     let parsedData = data;
     if (typeof data === 'string') {

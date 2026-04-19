@@ -1,5 +1,4 @@
-@import "prismjs/themes/prism.css";
-@import "prismjs/themes/prism-tomorrow.css"(prefers-color-scheme: dark);
+@import "prismjs/themes/prism-tomorrow.css" (prefers-color-scheme: dark);
 @import "tailwindcss";
 
 .markdown-preview {
@@ -346,4 +345,23 @@
         print-color-adjust: exact;
         background-color: #f8fafc !important;
     }
+}
+
+/* ── Mermaid diagram blocks ─────────────────────────────────────────────────── */
+
+.markdown-preview .mermaid-source {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 1.5em 0;
+    overflow-x: auto;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.markdown-preview .mermaid-source svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
 }

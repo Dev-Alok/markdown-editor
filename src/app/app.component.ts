@@ -11,11 +11,12 @@ import { PreviewService } from './preview.service';
 import { EditorService } from './editor.service';
 import { ScrollSyncService } from './scroll-sync.service';
 import { ConfirmDialogComponent } from './confirm-dialog/confirm-dialog.component';
+import { EditorToolbarComponent } from './editor-toolbar/editor-toolbar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, CommonModule, ConfirmDialogComponent],
+  imports: [FormsModule, CommonModule, ConfirmDialogComponent, EditorToolbarComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -102,7 +103,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   protected toggleTheme(): void {
     this.themeService.toggleTheme();
-    this.isDarkMode.set(this.themeService.isDarkMode());
+    const isDark = this.themeService.isDarkMode();
+    this.isDarkMode.set(isDark);
+    this.previewService.updateMermaidTheme(isDark);
   }
 
   protected handleFileUpload(event: Event): void {
